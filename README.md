@@ -21,7 +21,7 @@ Simpliest way to add your own \*.c file is to modify the `Makefile` by the follo
 
 Then you can run the following to build the files into binaries:
 
-    `make all`
+    `make`
 
 Note: You must have [riscv-tools](https://github.com/riscv/riscv-tools) installed and on
 your path.
