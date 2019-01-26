@@ -15,11 +15,10 @@ and [BOOM](https://boom-core.org) core.
 
 ## How to use
 
-Simpliest way to add your own \*.c file is to modify the `Makefile` by the following:
+All you have to do is add your \*.c file to the `src/` directory. The output for both
+the dump files and the binary will be in `dump/` and `bin/` respectively.
 
-    PROGRAMS=<LIST YOUR C FILES HERE WITHOUT THE .C EXTENSION>
-
-Then you can run the following to build the files into binaries:
+You run the following to build the files into binaries:
 
     `make`
 
