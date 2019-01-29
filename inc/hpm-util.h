@@ -72,7 +72,7 @@
  * @return none
  */
 #define HPM_SETUP_EVENTS(name, eventset, events) ({ \
-            write_csr(name, (events << 8) & eventset); \
+            write_csr(name, ((events << 8) | eventset)); \
         })
 
 #endif
