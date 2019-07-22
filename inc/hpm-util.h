@@ -17,7 +17,7 @@
 /**
  * Quick description of HPM's and their use
  *
- * According to RISC-V Priv. 1.10, HPMs are used to 
+ * According to RISC-V Priv. 1.10, HPMs are used to
  * keep track of architectural events.
  *
  * To use:

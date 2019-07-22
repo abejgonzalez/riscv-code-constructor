@@ -1,5 +1,5 @@
 ###############################################################################
-# Makefile for building baremetal C RISC-V executables 
+# Makefile for building baremetal C RISC-V executables
 ###############################################################################
 
 # Folders
@@ -14,7 +14,7 @@ DEP:=dep
 # Commands and flags
 CC:=riscv64-unknown-elf-gcc
 OBJDUMP:=riscv64-unknown-elf-objdump -S
-CFLAGS=-mcmodel=medany -l -std=gnu99 -O0 -g -fno-common -fno-builtin-printf -Wall -I$(INC) -Wno-unused-function -Wno-unused-variable
+CFLAGS=-mcmodel=medany -march=rv64gc -l -std=gnu99 -O0 -g -Og -fno-common -fno-builtin-printf -Wall -I$(INC) -Wno-unused-function -Wno-unused-variable
 LDFLAGS:=-static -nostdlib -nostartfiles -lgcc
 DEPFLAGS=-MT $@ -MMD -MP -MF $(DEP)/$*.d
 RM=rm -rf

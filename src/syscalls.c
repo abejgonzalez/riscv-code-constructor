@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <sys/signal.h>
 #include "util.h"
+#include "hpm-util.h"
 
 #define SYS_write 64
 
@@ -33,22 +34,28 @@ static uintptr_t syscall(uintptr_t which, uint64_t arg0, uint64_t arg1, uint64_t
   return magic_mem[0];
 }
 
-#define NUM_COUNTERS 2
+#define NUM_COUNTERS 8
 static uintptr_t counters[NUM_COUNTERS];
 static char* counter_names[NUM_COUNTERS];
 
 void setStats(int enable)
 {
   int i = 0;
-#define READ_CTR(name) do { \
+#define READ_CTR(name, printname) do { \
     while (i >= NUM_COUNTERS) ; \
     uintptr_t csr = read_csr(name); \
-    if (!enable) { csr -= counters[i]; counter_names[i] = #name; } \
+    if (!enable) { csr -= counters[i]; counter_names[i] = #printname; } \
     counters[i++] = csr; \
   } while (0)
 
-  READ_CTR(mcycle);
-  READ_CTR(minstret);
+  READ_CTR(mcycle, mcycle);
+  READ_CTR(minstret, minstret);
+  READ_CTR(mhpmcounter3, br mispreds);
+  READ_CTR(mhpmcounter4, br resolved);
+  READ_CTR(mhpmcounter5, nop);
+  READ_CTR(mhpmcounter6, nop);
+  READ_CTR(mhpmcounter7, br mispreds w !debug);
+  READ_CTR(mhpmcounter8, br resolved w !debug);
 
 #undef READ_CTR
 }
@@ -109,16 +116,27 @@ void _init(int cid, int nc)
   init_tls();
   thread_entry(cid, nc);
 
+  HPM_EN_USER();
+  //HPM_SETUP_EVENTS(mhpmevent3, 1, 0x04); // mispred
+  //HPM_SETUP_EVENTS(mhpmevent4, 1, 0x20); // br resolve
+  //HPM_SETUP_EVENTS(mhpmevent5, 1, 0x02); // NOP (should b 0)
+
+  write_csr(mhpmevent3, 0x00401); // get the mispredict #
+  write_csr(mhpmevent4, 0x02001); // get the BR resolve #
+  write_csr(mhpmevent5, 0x04001); // get the btb blame # (non-debug)
+  write_csr(mhpmevent6, 0x08001); // get the bpd blame # (non-debug)
+  write_csr(mhpmevent7, 0x10001); // get the btb mispreds # (non-debug)
+  write_csr(mhpmevent8, 0x20001); // get the bpd mispreds # (non-debug)
+
   // only single-threaded programs should ever get here.
   int ret = main(0, 0);
 
-  char buf[NUM_COUNTERS * 32] __attribute__((aligned(64)));
-  char* pbuf = buf;
-  for (int i = 0; i < NUM_COUNTERS; i++)
-    if (counters[i])
-      pbuf += sprintf(pbuf, "%s = %d\n", counter_names[i], counters[i]);
-  if (pbuf != buf)
-    printstr(buf);
+  //char buf[NUM_COUNTERS * 32] __attribute__((aligned(64)));
+  //char* pbuf = buf;
+  //for (int i = 0; i < NUM_COUNTERS; i++)
+  //  pbuf += sprintf(pbuf, "%s = %d\n", counter_names[i], counters[i]);
+  //if (pbuf != buf)
+  //  printstr(buf);
 
   exit(ret);
 }
@@ -227,7 +245,7 @@ static void vprintfmt(void (*putch)(int, void**), void **putdat, const char *fmt
     case '-':
       padc = '-';
       goto reswitch;
-      
+
     // flag to pad with 0's instead of spaces
     case '0':
       padc = '0';
@@ -336,7 +354,7 @@ static void vprintfmt(void (*putch)(int, void**), void **putdat, const char *fmt
     case '%':
       putch(ch, putdat);
       break;
-      
+
     // unrecognized escape sequence - just print it literally
     default:
       putch('%', putdat);
