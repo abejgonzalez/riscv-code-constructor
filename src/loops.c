@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "util.h"
 
 #define AMT_LOOPS 1000
 

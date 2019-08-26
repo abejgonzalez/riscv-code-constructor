@@ -1,7 +1,3 @@
-###############################################################################
-# Makefile for building baremetal C RISC-V executables
-###############################################################################
-
 # Folders
 SRC:=src
 INC:=inc
@@ -11,54 +7,33 @@ BIN:=bin
 DMP:=dump
 DEP:=dep
 
+TAPEOUT_FLAGS?= -D REFCLK=250000000UL -D DEBUG
+#TAPEOUT_FLAGS= -D REFCLK=10000000UL
+
 # Commands and flags
 CC:=riscv64-unknown-elf-gcc
 OBJDUMP:=riscv64-unknown-elf-objdump -S
-CFLAGS=-mcmodel=medany -march=rv64gc -l -std=gnu99 -O0 -g -Og -fno-common -fno-builtin-printf -Wall -I$(INC) -Wno-unused-function -Wno-unused-variable
-LDFLAGS:=-static -nostdlib -nostartfiles -lgcc
-DEPFLAGS=-MT $@ -MMD -MP -MF $(DEP)/$*.d
+OBJCOPY := riscv64-unknown-elf-objcopy
+CFLAGS=$(TAPEOUT_FLAGS) -mcmodel=medany -march=rv64gc -std=c11 -Os -g -Og -fno-common -fno-builtin-printf -Wall -I$(INC) -Wno-unused-function -Wno-unused-variable -Wunused-but-set-variable
+LDFLAGS:=-static -nostdlib -nostartfiles
 RM=rm -rf
 
-# Programs to compile
-ALL_SRCS=$(notdir $(basename $(wildcard src/*))) # All src files in src
-NON_USER_SRCS=crt syscalls # Included but not compiled srcs
-PROGRAMS=$(filter-out $(NON_USER_SRCS),$(ALL_SRCS)) # Only compile srcs wanted
+NAME?=beagleTest
 
-BINS=$(addprefix $(BIN)/,$(addsuffix .riscv,$(PROGRAMS)))
-DUMPS=$(addprefix $(DMP)/,$(addsuffix .dump,$(PROGRAMS)))
+SRCS := $(SRC)/crt.S $(SRC)/syscalls.c $(SRC)/beagleTest.c $(SRC)/sd.c $(SRC)/gpt.c $(SRC)/tty.c
+LDSCRIPT := $(LNK)/link.ld
 
-.PHONY: all # all is not a file
-all: $(BINS) $(DUMPS)
+.PHONY: all
+all: $(BIN)/$(NAME).riscv $(DMP)/$(NAME).dump
 
-dumps: $(DUMPS)
-
-# Build executable
-$(BIN)/%.riscv: $(OBJ)/%.o $(OBJ)/crt.o $(OBJ)/syscalls.o $(LNK)/link.ld
+$(BIN)/$(NAME).riscv: $(SRCS) $(HDRS) $(LDSCRIPT)
 	@mkdir -p $(BIN)
-	$(CC) -T $(LNK)/link.ld $(DEPFLAGS) $(LDFLAGS) $< $(OBJ)/crt.o $(OBJ)/syscalls.o -o $@
+	$(CC) -T $(LDSCRIPT) $(LDFLAGS) $(CFLAGS) $(SRCS) -o $@
 
-# Build dump
 $(DMP)/%.dump: $(BIN)/%.riscv
 	@mkdir -p $(DMP)
 	$(OBJDUMP) -D $< > $@
 
-# Build object files
-$(OBJ)/%.o: $(SRC)/%.S
-	@mkdir -p $(OBJ)
-	$(CC) $(CFLAGS) -D__ASSEMBLY__=1 -c $< -o $@
-
-$(OBJ)/%.o: $(SRC)/%.c
-	@mkdir -p $(OBJ)
-	@mkdir -p $(DEP)
-	$(CC) $(CFLAGS) $(DEPFLAGS) -c $< -o $@
-
-# Keep the temporary .o files
-.PRECIOUS: $(OBJ)/%.o
-
-# Remove all generated files
-.PHONY: clean # clean is not a file
+.PHONY: clean
 clean:
-	$(RM) $(BIN) $(OBJ) $(DMP) $(DEP)
-
-# Include dependencies
--include $(addprefix $(DEP)/,$(addsuffix .d,$(PROGRAMS)))
+	$(RM) $(BIN) $(DMP)

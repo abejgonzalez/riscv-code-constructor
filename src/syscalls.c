@@ -8,6 +8,7 @@
 #include <sys/signal.h>
 #include "util.h"
 #include "hpm-util.h"
+#include "syscalls.h"
 
 #define SYS_write 64
 
@@ -102,7 +103,7 @@ int __attribute__((weak)) main(int argc, char** argv)
 
 static void init_tls()
 {
-  register void* thread_pointer asm("tp");
+  register void* thread_pointer __asm__("tp");
   extern char _tls_data;
   extern __thread char _tdata_begin, _tdata_end, _tbss_end;
   size_t tdata_size = &_tdata_end - &_tdata_begin;

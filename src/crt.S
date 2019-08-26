@@ -216,6 +216,11 @@ trap_entry:
   addi sp, sp, 272
   mret
 
+.globl hang
+hang:
+    wfi
+    j hang
+
 .section ".tdata.begin"
 .globl _tdata_begin
 _tdata_begin:
